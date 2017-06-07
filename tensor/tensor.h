@@ -1,6 +1,8 @@
 #ifndef LZC_TENSOR_H
 #define LZC_TENSOR_H
 
+#include <iostream>
+
 #pragma GCC push_options
 #pragma GCC optimize ("unroll-loops")
 
@@ -18,7 +20,7 @@ public:
 public:
     Shape( void ) {}
     inline index_t& operator[](size_t idx) {
-        return _shape[idx];
+        return _array[idx];
     }
     inline const index_t& stride( void ) const {
         return _stride;
@@ -26,48 +28,59 @@ public:
     inline bool operator==(const Shape<DIM> &other) const {
         #pragma unroll 
         for (int i = 0; i < DIM; ++i) {
-            if (this->_shape[i] != other._shape[i]) {
+            if (this->_array[i] != other._array[i]) {
                 return false;
             }
         }
         return true;
     }
+
     inline Shape<2> flat_to_2d( void ) const {
         Shape<2> s;
         s._stride = this->_stride;
-        s._shape[0] = this->_shape[0];
+        s._array[0] = this->_array[0];
         index_t left = 1;
         #pragma unroll
         for (int i = 1; i < DIM; ++i) {
-            left *= this->_shape[i];
+            left *= this->_array[i];
         } 
-        s._shape[1] = left;
+        s._array[1] = left;
         return s;
     }
     inline size_t size( void ) const {
-        size_t ret = this->_shape[0];
+        size_t ret = this->_array[0];
         #pragma unroll
         for (int i = 1; i < DIM; ++i) {
-            ret *= this->_shape[i];
+            ret *= this->_array[i];
         }
         return ret;
     } 
-    virtual inline size_t mem_size( void ) const {}
+
+    // hard-code just to make it work
+    inline size_t mem_size( void ) const {
+        size_t ret = this->_stride;
+        #pragma unroll
+        for (int i = 0; i < DIM; ++i) {
+            ret *= this->_array[i];
+        }
+        return ret;
+    }
 
     inline Shape<SUBDIM> sub_shape( void ) const {
         Shape<SUBDIM> s;
         s._stride = this->_stride;
         #pragma unroll
         for (int i = 1; i < DIM; ++i) {
-            s._shape[i - 1] = this->_shape[i];
+            s._array[i - 1] = this->_array[i];
         }
         return s;
     }
 public:
     // from left to right: 1st dim, 2st dim, ....
-    index_t _shape[]; 
+    index_t _array[DIM]; 
     index_t _stride;     
 }; // class Shape
+
 }; // lzc
 
 namespace lzc {
@@ -81,28 +94,28 @@ struct gpu {
 template <class device, int dimension>
 class Tensor {
 public:
-    real_t *_dptr;
-    Shape<dimension> _shape;
     const static bool DEVICE_TYPE = device::isCPU;
     const static index_t DIM = dimension; 
     const static index_t SUBDIM = dimension - 1; 
+    real_t *_dptr;
+    Shape<DIM> _shape;
 public:
     Tensor( void ) {}
     Tensor(real_t *dptr, Shape<DIM> shape): _dptr(dptr),_shape(shape) {} 
 
     inline Tensor<device, 2> flat_to_2d() const{
-        return Tensor((real_t*)_dptr, _shape.flat_to_2d());
+        return Tensor<device, 2>((real_t*)_dptr, _shape.flat_to_2d());
     }  
     
     inline Tensor<device, SUBDIM> operator[](index_t idx) const {
-        Shape<SUBDIM> = _shape.sub_shape();
-        return Tensor((real_t*)_dptr + idx * s.mem_size(), s);
+        Shape<SUBDIM> s = this->_shape.sub_shape();
+        return Tensor<device, SUBDIM>((real_t*)_dptr + idx * s.mem_size(), s);
     }
 
     inline Tensor<device, DIM> slice(index_t se, index_t ed) const {
         Shape<DIM> s = this->_shape;
         s[0] = ed - se;
-        return Tensor((real_t*)_dptr + se * s.sub_shape().mem_size(), s);
+        return Tensor<device, DIM>((real_t*)_dptr + se * s.sub_shape().mem_size(), s);
     }
 }; // class Tensor
 template <class device>
