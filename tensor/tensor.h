@@ -126,9 +126,16 @@ public:
     Tensor( void ) {}
     Tensor(real_t *dptr, Shape<1> shape) : _dptr(dptr),_shape(shape) {}
     
-    inline real_t operator[](index_t idx) const {
+    inline real_t& operator[](index_t idx) const {
         return _dptr[idx];
     } 
+
+    inline Tensor<device, 1> slice(int se, int ed) const {
+        Shape<1> s;
+        s._array[0] = ed - se;
+        return Tensor<device, 1>((real_t*)_dptr + se, s);
+    }
+
 }; // class tensor
 }; // lzc
 
@@ -142,6 +149,15 @@ namespace lzc {
     typedef Tensor<gpu, 3> GTensor3D;
     typedef Tensor<gpu, 4> GTensor4D;
 }; // lzc
+
+namespace lzc {
+    template <class SV, class OP>
+    inline void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst);
+    inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst);
+}; // lzc
+
+#include "tensor_cpu-impl.h"
+// #include "tensor_gpu-impl.h"
 
 #pragma GCC pop_options
 #endif
