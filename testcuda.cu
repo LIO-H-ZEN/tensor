@@ -4,6 +4,7 @@ using namespace lzc;
 using namespace std;
 
 int main( void ) {
+    /*
     float a[100];
     Shape<2> s;
     s._stride = 1;
@@ -28,8 +29,16 @@ int main( void ) {
     // test op
     float b[100];
     CTensor2D pmat(&b[0], s); 
-    map<op::saveto, op::plus>(pmat, mat, mat); 
+    map<sv::saveto, op::plus>(pmat, mat, mat); 
     cout << pmat[0][0] << endl;
     cout << pmat[0][1] << endl;
     cout << pmat[1][0] << endl;
+    */
+    CTensor2D t = new_ctensor(shape2(10, 10), -1);
+    for (int i = 0; i < t._shape[0]; ++i) {
+        for (int j = 0; j < t._shape[1]; ++j) {
+            cout << t[i][j] << " ";
+        }
+        cout << endl;
+    }
 }

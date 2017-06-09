@@ -1,5 +1,5 @@
-#ifndef OP_TENSOR_OP_H
-#define OP_TENSOR_OP_H
+#ifndef LZC_OP_TENSOR_OP_H
+#define LZC_OP_TENSOR_OP_H
 
 #include "tensor.h"
 
@@ -9,7 +9,7 @@ namespace lzc {
         struct plus {};
     }; // op
     
-    namespace op {
+    namespace sv {
         struct saveto {};
     }; // op
     
@@ -28,15 +28,15 @@ namespace lzc {
         }; // bm
     };
     
-    namespace op {
+    namespace sv {
         template <class OPTYPE>
         struct Saver {
-            inline static void map(real_t l, real_t r) {}
+            inline static void save(real_t l, real_t r) {}
         }; // sv 
     
         template <>
         struct Saver<saveto> {
-            inline static void map(real_t& l, real_t r) {
+            inline static void save(real_t& l, real_t r) {
                 l = r;
             }
         }; // sv 

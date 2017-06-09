@@ -3,9 +3,6 @@
 
 #include <iostream>
 
-#pragma GCC push_options
-#pragma GCC optimize ("unroll-loops")
-
 namespace lzc {
     typedef float real_t;
     typedef unsigned index_t; // 0 ~ 65535 limit of #(gpu thread block) 
@@ -58,9 +55,10 @@ public:
 
     // hard-code just to make it work
     inline size_t mem_size( void ) const {
+        // stride reserve the basic dim
         size_t ret = this->_stride;
         #pragma unroll
-        for (int i = 0; i < DIM; ++i) {
+        for (int i = 0; i < DIM - 1; ++i) {
             ret *= this->_array[i];
         }
         return ret;
@@ -81,6 +79,35 @@ public:
     index_t _stride;     
 }; // class Shape
 
+inline Shape<1> shape1(index_t a1) {
+    Shape<1> s;
+    s[0] = a1;
+    return s;
+}
+
+inline Shape<2> shape2(index_t a1, index_t a2) {
+    Shape<2> s;
+    s[0] = a1;
+    s[1] = a2;
+    return s;
+}
+
+inline Shape<3> shape3(index_t a1, index_t a2, index_t a3) {
+    Shape<3> s;
+    s[0] = a1;
+    s[1] = a2;
+    s[2] = a3;
+    return s;
+}
+
+inline Shape<4> shape4(index_t a1, index_t a2, index_t a3, index_t a4) {
+    Shape<4> s;
+    s[0] = a1;
+    s[1] = a2;
+    s[2] = a3;
+    s[3] = a4;
+    return s;
+}
 }; // lzc
 
 namespace lzc {
@@ -101,6 +128,7 @@ public:
     Shape<DIM> _shape;
 public:
     Tensor( void ) {}
+    Tensor(Shape<DIM> shape) : _shape(shape) {}
     Tensor(real_t *dptr, Shape<DIM> shape): _dptr(dptr),_shape(shape) {} 
 
     inline Tensor<device, 2> flat_to_2d() const{
@@ -154,10 +182,37 @@ namespace lzc {
     template <class SV, class OP>
     inline void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst);
     inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst);
+
+    // alloc memory for tensor according to its shape
+    // and set its stride
+    template <int dimension>
+    inline void alloc_space(Tensor<cpu, dimension> &t);
+
+    template <int dimension>
+    inline void alloc_space(Tensor<gpu, dimension> &t);
+
+    template <int dimension>
+    inline void free_space(Tensor<cpu, dimension> &t); 
+
+    template <int dimension>
+    inline void free_space(Tensor<gpu, dimension> &t); 
+
+    template <class SV>
+    inline void store(CTensor2D t, real_t v);
+
+    template <class SV>
+    inline void store(GTensor2D t, real_t v);
+}; // lzc
+
+namespace lzc {
+    template <int dimension>
+    inline Tensor<cpu, dimension> new_ctensor(const Shape<dimension> &shape, real_t init_v);
+
 }; // lzc
 
 #include "tensor_cpu-impl.h"
-// #include "tensor_gpu-impl.h"
+#ifdef __CUDA_ARCH__
+// #include "cuda/tensor_gpu-impl.h"
+#endif
 
-#pragma GCC pop_options
 #endif
