@@ -3,6 +3,16 @@
 
 #include <iostream>
 
+#ifdef _XINLINE_
+    #error "_XINLINE_ must be undefined"
+#endif
+// CUDACC用来区分是否是nvcc编译的
+#ifdef __CUDACC__
+    #define _XINLINE_ inline __device__ __host__
+#else
+    #define _XINLINE_ inline
+#endif
+
 namespace lzc {
     typedef float real_t;
     typedef unsigned index_t; // 0 ~ 65535 limit of #(gpu thread block) 
@@ -16,13 +26,13 @@ public:
     const static int SUBDIM = dimension - 1;
 public:
     Shape( void ) {}
-    inline index_t& operator[](size_t idx) {
+    _XINLINE_ index_t& operator[](size_t idx) {
         return _array[idx];
     }
-    inline const index_t& stride( void ) const {
+    _XINLINE_ const index_t& stride( void ) const {
         return _stride;
     }
-    inline bool operator==(const Shape<DIM> &other) const {
+    _XINLINE_ bool operator==(const Shape<DIM> &other) const {
         #pragma unroll 
         for (int i = 0; i < DIM; ++i) {
             if (this->_array[i] != other._array[i]) {
@@ -32,19 +42,26 @@ public:
         return true;
     }
 
-    inline Shape<2> flat_to_2d( void ) const {
+    _XINLINE_ Shape<2> flat_to_2d(bool direction=false) const {
         Shape<2> s;
         s._stride = this->_stride;
-        s._array[0] = this->_array[0];
         index_t left = 1;
+        int se = 1;
+        int ed = DIM;
+        s._array[0] = this->_array[0]; 
+        if (direction) {
+            se = 0;
+            ed = DIM - 1;
+            s._array[0] = this->_array[ed]; 
+        }
         #pragma unroll
-        for (int i = 1; i < DIM; ++i) {
+        for (int i = se; i < ed; ++i) {
             left *= this->_array[i];
         } 
         s._array[1] = left;
         return s;
     }
-    inline size_t size( void ) const {
+    _XINLINE_ size_t size( void ) const {
         size_t ret = this->_array[0];
         #pragma unroll
         for (int i = 1; i < DIM; ++i) {
@@ -54,7 +71,7 @@ public:
     } 
 
     // hard-code just to make it work
-    inline size_t mem_size( void ) const {
+    _XINLINE_ size_t mem_size( void ) const {
         // stride reserve the basic dim
         size_t ret = this->_stride;
         #pragma unroll
@@ -64,7 +81,7 @@ public:
         return ret;
     }
 
-    inline Shape<SUBDIM> sub_shape( void ) const {
+    _XINLINE_ Shape<SUBDIM> sub_shape( void ) const {
         Shape<SUBDIM> s;
         s._stride = this->_stride;
         #pragma unroll
@@ -79,20 +96,20 @@ public:
     index_t _stride;     
 }; // class Shape
 
-inline Shape<1> shape1(index_t a1) {
+_XINLINE_ Shape<1> shape1(index_t a1) {
     Shape<1> s;
     s[0] = a1;
     return s;
 }
 
-inline Shape<2> shape2(index_t a1, index_t a2) {
+_XINLINE_ Shape<2> shape2(index_t a1, index_t a2) {
     Shape<2> s;
     s[0] = a1;
     s[1] = a2;
     return s;
 }
 
-inline Shape<3> shape3(index_t a1, index_t a2, index_t a3) {
+_XINLINE_ Shape<3> shape3(index_t a1, index_t a2, index_t a3) {
     Shape<3> s;
     s[0] = a1;
     s[1] = a2;
@@ -100,7 +117,7 @@ inline Shape<3> shape3(index_t a1, index_t a2, index_t a3) {
     return s;
 }
 
-inline Shape<4> shape4(index_t a1, index_t a2, index_t a3, index_t a4) {
+_XINLINE_ Shape<4> shape4(index_t a1, index_t a2, index_t a3, index_t a4) {
     Shape<4> s;
     s[0] = a1;
     s[1] = a2;
@@ -131,16 +148,16 @@ public:
     Tensor(Shape<DIM> shape) : _shape(shape) {}
     Tensor(real_t *dptr, Shape<DIM> shape): _dptr(dptr),_shape(shape) {} 
 
-    inline Tensor<device, 2> flat_to_2d() const{
-        return Tensor<device, 2>((real_t*)_dptr, _shape.flat_to_2d());
+    _XINLINE_ Tensor<device, 2> flat_to_2d(bool direction=false) const{
+        return Tensor<device, 2>((real_t*)_dptr, _shape.flat_to_2d(direction));
     }  
     
-    inline Tensor<device, SUBDIM> operator[](index_t idx) const {
+    _XINLINE_ Tensor<device, SUBDIM> operator[](index_t idx) const {
         Shape<SUBDIM> s = this->_shape.sub_shape();
         return Tensor<device, SUBDIM>((real_t*)_dptr + idx * s.mem_size(), s);
     }
 
-    inline Tensor<device, DIM> slice(index_t se, index_t ed) const {
+    _XINLINE_ Tensor<device, DIM> slice(index_t se, index_t ed) const {
         Shape<DIM> s = this->_shape;
         s[0] = ed - se;
         return Tensor<device, DIM>((real_t*)_dptr + se * s.sub_shape().mem_size(), s);
@@ -154,11 +171,11 @@ public:
     Tensor( void ) {}
     Tensor(real_t *dptr, Shape<1> shape) : _dptr(dptr),_shape(shape) {}
     
-    inline real_t& operator[](index_t idx) const {
+    _XINLINE_ real_t& operator[](index_t idx) const {
         return _dptr[idx];
     } 
 
-    inline Tensor<device, 1> slice(int se, int ed) const {
+    _XINLINE_ Tensor<device, 1> slice(int se, int ed) const {
         Shape<1> s;
         s._array[0] = ed - se;
         return Tensor<device, 1>((real_t*)_dptr + se, s);
@@ -180,39 +197,41 @@ namespace lzc {
 
 namespace lzc {
     template <class SV, class OP>
-    inline void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst);
-    inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst);
+    _XINLINE_ void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst);
+    _XINLINE_ void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst);
 
     // alloc memory for tensor according to its shape
     // and set its stride
     template <int dimension>
-    inline void alloc_space(Tensor<cpu, dimension> &t);
+    _XINLINE_ void alloc_space(Tensor<cpu, dimension> &t);
 
     template <int dimension>
-    inline void alloc_space(Tensor<gpu, dimension> &t);
+    _XINLINE_ void alloc_space(Tensor<gpu, dimension> &t);
 
     template <int dimension>
-    inline void free_space(Tensor<cpu, dimension> &t); 
+    _XINLINE_ void free_space(Tensor<cpu, dimension> &t); 
 
     template <int dimension>
-    inline void free_space(Tensor<gpu, dimension> &t); 
+    _XINLINE_ void free_space(Tensor<gpu, dimension> &t); 
 
-    template <class SV>
-    inline void store(CTensor2D t, real_t v);
+    template <class SV, int dim>
+    _XINLINE_ void store(Tensor<cpu, dim> t, real_t v);
 
-    template <class SV>
-    inline void store(GTensor2D t, real_t v);
+    template <class SV, int dim>
+    _XINLINE_ void store(Tensor<gpu, dim> t, real_t v);
 }; // lzc
 
 namespace lzc {
     template <int dimension>
-    inline Tensor<cpu, dimension> new_ctensor(const Shape<dimension> &shape, real_t init_v);
+    _XINLINE_ Tensor<cpu, dimension> new_ctensor(const Shape<dimension> &shape, real_t init_v);
 
+    template <int dimension>
+    _XINLINE_ Tensor<gpu, dimension> new_gtensor(const Shape<dimension> &shape, real_t init_v);
 }; // lzc
 
 #include "tensor_cpu-impl.h"
 #ifdef __CUDA_ARCH__
-// #include "cuda/tensor_gpu-impl.h"
+#include "cuda/tensor_gpu-impl.h"
 #endif
 
 #endif

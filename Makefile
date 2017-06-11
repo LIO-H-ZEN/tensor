@@ -1,6 +1,6 @@
 export CC  = gcc
 export CXX = g++
-export NVCC = /home/liuzhaocheng/cuda/bin/nvcc
+export NVCC = nvcc
 #export CFLAGS = -Wall -O3 -msse2 -Wno-unknown-pragmas -funroll-loops
 export CFLAGS = -Wall -O0 -msse2 -Wno-unknown-pragmas -funroll-loops
 export LDFLAGS= -lpthread -lm 

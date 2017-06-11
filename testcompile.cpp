@@ -35,5 +35,10 @@ int main( void ) {
     cout << pmat[1][0] << endl;
     */
     CTensor2D t = new_ctensor(shape2(10, 10), -1);
-    cout << t[1][0] << endl;
+    for (index_t i = 0; i < t._shape[0]; ++i) {
+        for (index_t j = 0; j < t._shape[1]; ++j) {
+            cout << t[i][j] << " ";
+        }
+        cout << endl;
+    }
 }

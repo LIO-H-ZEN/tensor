@@ -4,42 +4,20 @@
 #include "tensor.h"
 
 namespace lzc {
-
     namespace op {
-        struct plus {};
-    }; // op
-    
-    namespace sv {
-        struct saveto {};
-    }; // op
-    
-    namespace op {
-    
-        template <class OPTYPE>
-        struct BinaryMapper {
-            inline static real_t map(real_t l, real_t r) {}
-        }; // bm
-        
-        template <>
-        struct BinaryMapper<plus> {
-            inline static real_t map(real_t l, real_t r) {
+        struct plus {
+            _XINLINE_ static real_t map(real_t l, real_t r) {
                 return l + r;
             }
-        }; // bm
-    };
+        }; // plus 
+    }; // op
     
     namespace sv {
-        template <class OPTYPE>
-        struct Saver {
-            inline static void save(real_t l, real_t r) {}
-        }; // sv 
-    
-        template <>
-        struct Saver<saveto> {
-            inline static void save(real_t& l, real_t r) {
+        struct saveto {
+            _XINLINE_ static void save(real_t& l, real_t r) {
                 l = r;
             }
-        }; // sv 
-    }; // op
+        }; // saveto 
+    }; // sv 
 }; // lzc
 #endif
