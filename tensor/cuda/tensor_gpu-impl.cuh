@@ -2,7 +2,6 @@
 #define LZC_TENSOR_GPU_IMPL_H
 
 #include "../tensor.h"
-#include "tensor_gpu_op.h"
 
 namespace lzc {
     namespace cuda {
@@ -51,28 +50,22 @@ namespace lzc {
         t._shape._stride = pitch / sizeof(real_t);
     }
 
-    template <class SV, int dim>
-    _XINLINE_ void store(Tensor<gpu, dim> t, real_t v) {
-        GTensor2D gt = t.flat_to_2d();
-        for (int i = 0; i < gt._shape[0]; ++i) {
-            for (int j = 0; j < gt._shape[1]; ++j) {
-                sv::GSaver<SV>::save(gt[i][j], v);
-            }
-        } 
-    }
-
     template <int dim>
     _XINLINE_ void free_space(Tensor<gpu, dim> &t)  {
         cudaFree((void *)t._dptr);
         t._dptr = nullptr;
     }
-
+    
+    template <class A, class B, int dim>
+    _XINLINE_ void copy(Tensor<A, dim> dst, Tensor<B, dim> &src, cudaMemcpyKind kind) {
+        utils::Assert();
+        cudaMemcpy2D(); 
+    } 
     template <int dim>
-    _XINLINE_ Tensor<gpu, dim> new_gtensor(const Shape<dim> &shape, real_t init_v) {
-        Tensor<gpu, dim> ret(shape);
-        alloc_space(ret);
-        store<sv::saveto, dim>(ret, init_v);
-        return ret;
-    }
+    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<cpu, dim> &src);
+    template <int dim>
+    _XINLINE_ void copy(Tensor<cpu, dim> dst, Tensor<gpu, dim> &src);
+    template <int dim>
+    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<gpu, dim> &src);
 }; // lzc
 #endif

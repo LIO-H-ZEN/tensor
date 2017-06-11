@@ -2,6 +2,7 @@
 #define LZC_TENSOR_H
 
 #include <iostream>
+#include <cstring>
 
 #ifdef _XINLINE_
     #error "_XINLINE_ must be undefined"
@@ -204,21 +205,30 @@ namespace lzc {
     // and set its stride
     template <int dimension>
     _XINLINE_ void alloc_space(Tensor<cpu, dimension> &t);
-
     template <int dimension>
     _XINLINE_ void alloc_space(Tensor<gpu, dimension> &t);
 
+    // free_space
     template <int dimension>
     _XINLINE_ void free_space(Tensor<cpu, dimension> &t); 
-
     template <int dimension>
     _XINLINE_ void free_space(Tensor<gpu, dimension> &t); 
 
+    // store (cpu implemented, gpu hold)
     template <class SV, int dim>
     _XINLINE_ void store(Tensor<cpu, dim> t, real_t v);
-
     template <class SV, int dim>
     _XINLINE_ void store(Tensor<gpu, dim> t, real_t v);
+
+    // copy
+    template <int dim>
+    _XINLINE_ void copy(Tensor<cpu, dim> dst, Tensor<cpu, dim> &src);
+    template <int dim>
+    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<cpu, dim> &src);
+    template <int dim>
+    _XINLINE_ void copy(Tensor<cpu, dim> dst, Tensor<gpu, dim> &src);
+    template <int dim>
+    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<gpu, dim> &src);
 }; // lzc
 
 namespace lzc {
@@ -231,7 +241,7 @@ namespace lzc {
 
 #include "tensor_cpu-impl.h"
 #ifdef __CUDA_ARCH__
-#include "cuda/tensor_gpu-impl.h"
+#include "cuda/tensor_gpu-impl.cuh"
 #endif
 
 #endif
