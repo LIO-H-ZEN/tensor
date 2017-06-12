@@ -235,11 +235,11 @@ namespace lzc {
 }; // lzc
 
 namespace lzc {
-    template <int dimension>
-    _XINLINE_ Tensor<cpu, dimension> new_ctensor(const Shape<dimension> &shape, real_t init_v);
+    template <int dim>
+    inline Tensor<cpu, dim> new_ctensor(const Shape<dim> &shape, real_t init_v);
 
-    template <int dimension>
-    _XINLINE_ Tensor<gpu, dimension> new_gtensor(const Shape<dimension> &shape, real_t init_v);
+    template <int dim>
+    inline Tensor<gpu, dim> new_gtensor(const Shape<dim> &shape, real_t init_v);
 }; // lzc
 
 #include "tensor_cpu-impl.h"

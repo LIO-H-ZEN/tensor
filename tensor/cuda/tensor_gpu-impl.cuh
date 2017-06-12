@@ -83,34 +83,64 @@ namespace lzc {
 }; // lzc
 
 namespace lzc {
-    namespace cuda {
-        // 先实现个能work的
-        // 也就是block * thread 能cover的
-        // 这里一开始用的引用，用了之后爆内存非法访问。这个还需要理解下。
-        // 确定kernel函数的参数确实不能这么写。
-        template <class SV, class OP, int threads_per_block>
-        __global__ void map_kernel(GTensor2D dst, const GTensor2D lst, const GTensor2D rst) {
-            // blockIdx  threadIdx
-            const index_t tid = blockIdx.x * threads_per_block + threadIdx.x; 
-            const index_t stride = dst._shape._stride;
-            const index_t x = tid / stride; 
-            const index_t y = tid % stride; 
-            if (x < dst._shape[0] && y < dst._shape[1]) {
-                SV::save(dst[x][y], OP::map(lst[x][y], rst[x][y]));
-            }
-        }    
-
-        template <class SV, class OP>
-        inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst) {
-            dim3 thread_dim3(BASE_THREAD_NUM, 1, 1); // 3D in a block 
-            const index_t num_block = (dst._shape.mem_size() + BASE_THREAD_NUM - 1) / BASE_THREAD_NUM; 
-            if (num_block < MAX_GRID_NUM) {
-                dim3 grid_dim3(num_block, 1, 1); // 3D in a grid
-                map_kernel<SV, OP, BASE_THREAD_NUM><<<grid_dim3, thread_dim3>>>(dst, lst, rst);
-            } else {
-                // TODO
-            }
+    // 先实现个能work的
+    // 也就是block * thread 能cover的
+    // 这里一开始用的引用，用了之后爆内存非法访问。这个还需要理解下。
+    // 确定kernel函数的参数确实不能这么写。
+    template <class SV, class OP, int threads_per_block>
+    __global__ void map_kernel(GTensor2D dst, const GTensor2D lst, const GTensor2D rst) {
+        // blockIdx  threadIdx
+        const index_t tid = blockIdx.x * threads_per_block + threadIdx.x; 
+        const index_t stride = dst._shape._stride;
+        const index_t x = tid / stride; 
+        const index_t y = tid % stride; 
+        if (x < dst._shape[0] && y < dst._shape[1]) {
+            SV::save(dst[x][y], OP::map(lst[x][y], rst[x][y]));
         }
-    }; // cuda
+    }    
+
+    template <class SV, class OP>
+    inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst) {
+        dim3 thread_dim3(cuda::BASE_THREAD_NUM, 1, 1); // 3D in a block 
+        const index_t num_block = (dst._shape.mem_size() + cuda::BASE_THREAD_NUM - 1) / cuda::BASE_THREAD_NUM; 
+        if (num_block < cuda::MAX_GRID_NUM) {
+            dim3 grid_dim3(num_block, 1, 1); // 3D in a grid
+            map_kernel<SV, OP, cuda::BASE_THREAD_NUM><<<grid_dim3, thread_dim3>>>(dst, lst, rst);
+        } else {
+            utils::Error("not implement"); 
+        }
+    }
+
+    template <class SV, int threads_per_block>
+    __global__ void store_kernel(GTensor2D dst, real_t v) {
+        const index_t tid = blockIdx.x * threads_per_block + threadIdx.x; 
+        const index_t stride = dst._shape._stride;
+        const index_t x = tid / stride; 
+        const index_t y = tid % stride; 
+        if (x < dst._shape[0] && y < dst._shape[1]) {
+            SV::save(dst[x][y], v);
+        }
+    }
+
+    template <class SV, int dim>
+    inline void store(Tensor<gpu, dim> dst, real_t v) {
+        GTensor2D dst2 = dst.flat_to_2d();
+        dim3 thread_dim3(cuda::BASE_THREAD_NUM, 1, 1); // 3D in a block 
+        const index_t num_block = (dst2._shape.mem_size() + cuda::BASE_THREAD_NUM - 1) / cuda::BASE_THREAD_NUM; 
+        if (num_block < cuda::MAX_GRID_NUM) {
+            dim3 grid_dim3(num_block, 1, 1); // 3D in a grid
+            store_kernel<SV, cuda::BASE_THREAD_NUM><<<grid_dim3, thread_dim3>>>(dst2, v);
+        } else {
+            utils::Error("not implement"); 
+        }
+    }
+
+    template <int dim>
+    inline Tensor<gpu, dim> new_gtensor(const Shape<dim> &shape, real_t init_v) {
+        Tensor<gpu, dim> ret(shape);
+        alloc_space(ret);
+        store<sv::saveto, dim>(ret, init_v);
+        return ret;
+    }
 }; // lzc
 #endif

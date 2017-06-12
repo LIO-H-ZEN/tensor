@@ -4,20 +4,10 @@ using namespace lzc;
 using namespace std;
 
 void test_gpu_tensor( CTensor2D &t) {
-    GTensor2D t2(shape2(10, 10));
-    alloc_space(t2);
+    GTensor2D t2 = new_gtensor(shape2(10, 10), -2);
     copy(t2, t); 
     cout << "GPU-t2 alloc done. copy done." << endl;
-    // 切记gtensor要想在host访问，要copy回来。
-    // 另外发现实际分配的width不是10，而是128
-    /*
-    for (index_t i = 0; i < t2._shape[0]; ++i) {
-        for (index_t j = 0; j < t2._shape[1]; ++j) {
-            cout << t2[i][j] << " ";
-        }
-        cout << endl;
-    }
-    */
+
     CTensor2D res(shape2(10, 10));
     alloc_space(res);
     copy(res, t2);
@@ -31,12 +21,9 @@ void test_gpu_tensor( CTensor2D &t) {
 
     free_space(res);
 
-    GTensor2D t3(shape2(10, 10));
-    alloc_space(t3);
-    copy(t3, t2);
-    GTensor2D t4(shape2(10, 10));
-    alloc_space(t4);
-    cuda::map<sv::saveto, op::plus>(t4, t3, t2);    
+    GTensor2D t3 = new_gtensor(shape2(10, 10), -1);
+    GTensor2D t4 = new_gtensor(shape2(10, 10), -99);
+    map<sv::saveto, op::plus>(t4, t3, t2);    
     
     cout << "gpu-plus done. res:" << endl;  
     CTensor2D t5(shape2(10, 10));
