@@ -199,6 +199,7 @@ namespace lzc {
 namespace lzc {
     template <class SV, class OP>
     inline void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst);
+    template <class SV, class OP>
     inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst);
 
     // alloc memory for tensor according to its shape
