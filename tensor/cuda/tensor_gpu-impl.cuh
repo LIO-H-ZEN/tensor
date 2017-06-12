@@ -42,7 +42,7 @@ namespace lzc {
     // cudaMallocPitch: linear memory alloc for 2D,3D
     // cudaError_t: cuda erro type
     template <int dim>
-    _XINLINE_ void alloc_space(Tensor<gpu, dim> &t) {
+    inline void alloc_space(Tensor<gpu, dim> &t) {
         size_t pitch;
         cudaError_t ret = cudaMallocPitch((void **)&t._dptr, &pitch, t._shape[dim - 1] * sizeof(real_t), t.flat_to_2d(true)._shape[1]);
         utils::Assert(ret == cudaSuccess, cudaGetErrorString(ret));
@@ -51,21 +51,33 @@ namespace lzc {
     }
 
     template <int dim>
-    _XINLINE_ void free_space(Tensor<gpu, dim> &t)  {
+    inline void free_space(Tensor<gpu, dim> &t)  {
         cudaFree((void *)t._dptr);
-        t._dptr = nullptr;
+        t._dptr = NULL;
     }
     
     template <class A, class B, int dim>
-    _XINLINE_ void copy(Tensor<A, dim> dst, Tensor<B, dim> &src, cudaMemcpyKind kind) {
-        utils::Assert();
-        cudaMemcpy2D(); 
+    inline void copy(Tensor<A, dim> dst, Tensor<B, dim> &src, cudaMemcpyKind kind) {
+        utils::Assert(dst._shape == src._shape, "copy::shape mismatch");
+        Tensor<A, 2> dst2 = dst.flat_to_2d(true);
+        Tensor<B, 2> src2 = src.flat_to_2d(true);
+        cudaError_t ret = cudaMemcpy2D(dst2._dptr, dst2._shape._stride * sizeof(real_t), src2._dptr, src2._shape._stride * sizeof(real_t), src2._shape[0] * sizeof(real_t), src2._shape[1], kind); 
+        utils::Assert(ret == cudaSuccess, cudaGetErrorString(ret));
     } 
+
     template <int dim>
-    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<cpu, dim> &src);
+    inline void copy(Tensor<gpu, dim> dst, Tensor<cpu, dim> &src) {
+        copy<gpu, cpu, dim>(dst, src, cudaMemcpyHostToDevice);
+    }
+
     template <int dim>
-    _XINLINE_ void copy(Tensor<cpu, dim> dst, Tensor<gpu, dim> &src);
+    inline void copy(Tensor<cpu, dim> dst, Tensor<gpu, dim> &src) {
+        copy<cpu, gpu, dim>(dst, src, cudaMemcpyDeviceToHost);
+    }
+
     template <int dim>
-    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<gpu, dim> &src);
+    inline void copy(Tensor<gpu, dim> dst, Tensor<gpu, dim> &src) {
+        copy<gpu, gpu, dim>(dst, src, cudaMemcpyDeviceToDevice);
+    }
 }; // lzc
 #endif

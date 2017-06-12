@@ -26,7 +26,7 @@ public:
     const static int DIM = dimension;
     const static int SUBDIM = dimension - 1;
 public:
-    Shape( void ) {}
+    _XINLINE_ Shape( void ) {}
     _XINLINE_ index_t& operator[](size_t idx) {
         return _array[idx];
     }
@@ -145,9 +145,9 @@ public:
     real_t *_dptr;
     Shape<DIM> _shape;
 public:
-    Tensor( void ) {}
-    Tensor(Shape<DIM> shape) : _shape(shape) {}
-    Tensor(real_t *dptr, Shape<DIM> shape): _dptr(dptr),_shape(shape) {} 
+    _XINLINE_ Tensor( void ) {}
+    _XINLINE_ Tensor(Shape<DIM> shape) : _shape(shape) {}
+    _XINLINE_ Tensor(real_t *dptr, Shape<DIM> shape): _dptr(dptr),_shape(shape) {} 
 
     _XINLINE_ Tensor<device, 2> flat_to_2d(bool direction=false) const{
         return Tensor<device, 2>((real_t*)_dptr, _shape.flat_to_2d(direction));
@@ -169,8 +169,8 @@ class Tensor<device, 1> {
 public:
     real_t *_dptr;
     Shape<1> _shape;
-    Tensor( void ) {}
-    Tensor(real_t *dptr, Shape<1> shape) : _dptr(dptr),_shape(shape) {}
+    _XINLINE_ Tensor( void ) {}
+    _XINLINE_ Tensor(real_t *dptr, Shape<1> shape) : _dptr(dptr),_shape(shape) {}
     
     _XINLINE_ real_t& operator[](index_t idx) const {
         return _dptr[idx];
@@ -198,37 +198,39 @@ namespace lzc {
 
 namespace lzc {
     template <class SV, class OP>
-    _XINLINE_ void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst);
-    _XINLINE_ void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst);
+    inline void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst);
+    inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst);
 
     // alloc memory for tensor according to its shape
     // and set its stride
-    template <int dimension>
-    _XINLINE_ void alloc_space(Tensor<cpu, dimension> &t);
-    template <int dimension>
-    _XINLINE_ void alloc_space(Tensor<gpu, dimension> &t);
+    // 在host上分配空间，所以inline就行了
+    // 下面几个函数情况一样，都是在host上调用cuda api
+    template <int dim>
+    inline void alloc_space(Tensor<cpu, dim> &t);
+    template <int dim>
+    inline void alloc_space(Tensor<gpu, dim> &t);
 
     // free_space
     template <int dimension>
-    _XINLINE_ void free_space(Tensor<cpu, dimension> &t); 
+    inline void free_space(Tensor<cpu, dimension> &t); 
     template <int dimension>
-    _XINLINE_ void free_space(Tensor<gpu, dimension> &t); 
+    inline void free_space(Tensor<gpu, dimension> &t); 
 
     // store (cpu implemented, gpu hold)
     template <class SV, int dim>
-    _XINLINE_ void store(Tensor<cpu, dim> t, real_t v);
+    inline void store(Tensor<cpu, dim> t, real_t v);
     template <class SV, int dim>
-    _XINLINE_ void store(Tensor<gpu, dim> t, real_t v);
+    inline void store(Tensor<gpu, dim> t, real_t v);
 
     // copy
     template <int dim>
-    _XINLINE_ void copy(Tensor<cpu, dim> dst, Tensor<cpu, dim> &src);
+    inline void copy(Tensor<cpu, dim> dst, Tensor<cpu, dim> &src);
     template <int dim>
-    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<cpu, dim> &src);
+    inline void copy(Tensor<gpu, dim> dst, Tensor<cpu, dim> &src);
     template <int dim>
-    _XINLINE_ void copy(Tensor<cpu, dim> dst, Tensor<gpu, dim> &src);
+    inline void copy(Tensor<cpu, dim> dst, Tensor<gpu, dim> &src);
     template <int dim>
-    _XINLINE_ void copy(Tensor<gpu, dim> dst, Tensor<gpu, dim> &src);
+    inline void copy(Tensor<gpu, dim> dst, Tensor<gpu, dim> &src);
 }; // lzc
 
 namespace lzc {
@@ -240,7 +242,7 @@ namespace lzc {
 }; // lzc
 
 #include "tensor_cpu-impl.h"
-#ifdef __CUDA_ARCH__
+#ifdef __CUDACC__
 #include "cuda/tensor_gpu-impl.cuh"
 #endif
 
