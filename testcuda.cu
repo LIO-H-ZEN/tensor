@@ -3,6 +3,8 @@
 using namespace lzc;
 using namespace std;
 
+extern void test_gpu_tensor(CTensor2D &t);
+
 void test_gpu_tensor( CTensor2D &t) {
     GTensor2D t2 = new_gtensor(shape2(10, 10), -2);
     copy(t2, t); 

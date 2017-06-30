@@ -19,6 +19,7 @@ void test_cpu_tensor( CTensor2D &t ) {
 }
 
 void test_gpu_tensor(CTensor2D &t);
+void test_gpu_tensor_2(CTensor3D &t);
 
 int main( void ) {
     cout << "t1:" << endl;
@@ -31,5 +32,7 @@ int main( void ) {
     }
     test_cpu_tensor(t);
     test_gpu_tensor(t);
+    CTensor3D t3 = new_ctensor(shape3(10, 10, 2), -50);
+    test_gpu_tensor_2(t3);
     free_space(t);
 }

@@ -1,18 +1,21 @@
 #ifndef LZC_TENSOR_CPU_IMPL_H
 #define LZC_TENSOR_CPU_IMPL_H
 
-#include "tensor_op.h"
+#include "tensor_base.h"
 #include "../util/utils.h"
 
 namespace lzc {
     // map implementation
-    template <class SV, class OP>
-    inline void map(CTensor2D dst, const CTensor2D &lst, const CTensor2D &rst) {
+    template <class SV, class OP, int dim>
+    inline void map(Tensor<cpu, dim> dst, const Tensor<cpu, dim> &lst, const Tensor<cpu, dim> &rst) {
         utils::Assert(lst._shape == rst._shape, "left right tensor must in same shape");
         utils::Assert(dst._shape == rst._shape, "des right tensor must in same shape");
-        for ( index_t x = 0; x < dst._shape[0]; ++x) {
-            for (index_t y = 0; y < dst._shape[1]; ++y) {
-                SV::save(dst[x][y], OP::map(lst[x][y], rst[x][y]));
+        CTensor2D dst_2d = dst.flat_to_2d();
+        CTensor2D lst_2d = lst.flat_to_2d();
+        CTensor2D rst_2d = rst.flat_to_2d();
+        for ( index_t x = 0; x < dst_2d._shape[0]; ++x) {
+            for (index_t y = 0; y < dst_2d._shape[1]; ++y) {
+                SV::save(dst_2d[x][y], OP::map(lst_2d[x][y], rst_2d[x][y]));
             }
         } 
     }
@@ -47,7 +50,7 @@ namespace lzc {
     }
 
     template <int dim>
-    inline void copy(Tensor<cpu, dim> dst, Tensor<cpu, dim> &src) {
+    inline void copy(Tensor<cpu, dim> dst, const Tensor<cpu, dim> &src) {
         utils::Assert(dst._shape == src._shape, "dst and src must be in same shape");    
         CTensor2D dst2 = dst.flat_to_2d();
         CTensor2D src2 = src.flat_to_2d();

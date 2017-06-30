@@ -44,9 +44,10 @@ namespace lzc {
     template <int dim>
     inline void alloc_space(Tensor<gpu, dim> &t) {
         size_t pitch;
-        cudaError_t ret = cudaMallocPitch((void **)&t._dptr, &pitch, t._shape[dim - 1] * sizeof(real_t), t.flat_to_2d(true)._shape[1]);
+        cudaError_t ret = cudaMallocPitch((void **)&t._dptr, &pitch, t._shape[dim - 1] * sizeof(real_t), t.flat_to_2d()._shape[0]);
         utils::Assert(ret == cudaSuccess, cudaGetErrorString(ret));
         // pitch is the num of "width" bytes. that is t._shape[dim - 1] * sizeof(float)
+        // 所以stride就是gpu分配内存不是严格的个数*sizeof(real_t)，而是会补齐到512之类的
         t._shape._stride = pitch / sizeof(real_t);
     }
 
@@ -57,26 +58,26 @@ namespace lzc {
     }
     
     template <class A, class B, int dim>
-    inline void copy(Tensor<A, dim> dst, Tensor<B, dim> &src, cudaMemcpyKind kind) {
+    inline void copy(Tensor<A, dim> dst, const Tensor<B, dim> &src, cudaMemcpyKind kind) {
         utils::Assert(dst._shape == src._shape, "copy::shape mismatch");
-        Tensor<A, 2> dst2 = dst.flat_to_2d(true);
-        Tensor<B, 2> src2 = src.flat_to_2d(true);
-        cudaError_t ret = cudaMemcpy2D(dst2._dptr, dst2._shape._stride * sizeof(real_t), src2._dptr, src2._shape._stride * sizeof(real_t), src2._shape[0] * sizeof(real_t), src2._shape[1], kind); 
+        Tensor<A, 2> dst_2d = dst.flat_to_2d();
+        Tensor<B, 2> src_2d = src.flat_to_2d();
+        cudaError_t ret = cudaMemcpy2D(dst_2d._dptr, dst_2d._shape._stride * sizeof(real_t), src_2d._dptr, src_2d._shape._stride * sizeof(real_t), src_2d._shape[1] * sizeof(real_t), src_2d._shape[0], kind); 
         utils::Assert(ret == cudaSuccess, cudaGetErrorString(ret));
     } 
 
     template <int dim>
-    inline void copy(Tensor<gpu, dim> dst, Tensor<cpu, dim> &src) {
+    inline void copy(Tensor<gpu, dim> dst, const Tensor<cpu, dim> &src) {
         copy<gpu, cpu, dim>(dst, src, cudaMemcpyHostToDevice);
     }
 
     template <int dim>
-    inline void copy(Tensor<cpu, dim> dst, Tensor<gpu, dim> &src) {
+    inline void copy(Tensor<cpu, dim> dst, const Tensor<gpu, dim> &src) {
         copy<cpu, gpu, dim>(dst, src, cudaMemcpyDeviceToHost);
     }
 
     template <int dim>
-    inline void copy(Tensor<gpu, dim> dst, Tensor<gpu, dim> &src) {
+    inline void copy(Tensor<gpu, dim> dst, const Tensor<gpu, dim> &src) {
         copy<gpu, gpu, dim>(dst, src, cudaMemcpyDeviceToDevice);
     }
 
@@ -99,13 +100,16 @@ namespace lzc {
         }
     }    
 
-    template <class SV, class OP>
-    inline void map(GTensor2D dst, const GTensor2D &lst, const GTensor2D &rst) {
+    template <class SV, class OP, int dim>
+    inline void map(Tensor<gpu, dim> dst, const Tensor<gpu, dim> &lst, const Tensor<gpu, dim> &rst) {
         dim3 thread_dim3(cuda::BASE_THREAD_NUM, 1, 1); // 3D in a block 
         const index_t num_block = (dst._shape.mem_size() + cuda::BASE_THREAD_NUM - 1) / cuda::BASE_THREAD_NUM; 
         if (num_block < cuda::MAX_GRID_NUM) {
             dim3 grid_dim3(num_block, 1, 1); // 3D in a grid
-            map_kernel<SV, OP, cuda::BASE_THREAD_NUM><<<grid_dim3, thread_dim3>>>(dst, lst, rst);
+            GTensor2D dst_2d = dst.flat_to_2d();
+            GTensor2D lst_2d = lst.flat_to_2d();
+            GTensor2D rst_2d = rst.flat_to_2d();
+            map_kernel<SV, OP, cuda::BASE_THREAD_NUM><<<grid_dim3, thread_dim3>>>(dst_2d, lst_2d, rst_2d);
         } else {
             utils::Error("not implement"); 
         }

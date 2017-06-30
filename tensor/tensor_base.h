@@ -1,7 +1,31 @@
-#ifndef LZC_OP_TENSOR_OP_H
-#define LZC_OP_TENSOR_OP_H
+#ifndef LZC_TENSOR_BASE_H
+#define LZC_TENSOR_BASE_H
 
-#include "tensor.h"
+#include <iostream>
+#include <cstring>
+
+// CUDACC用来区分是否是nvcc编译的
+// always_inline
+#ifdef _XINLINE_
+    #error "_XINLINE_ must be undefined"
+#endif
+#ifdef __CUDACC__
+    #define _XINLINE_ inline __attribute__((always_inline)) __device__ __host__
+#else
+    #define _XINLINE_ inline __attribute__((always_inline))
+#endif
+
+// float or double
+#define IS_SINGLE_PRECISION 1 
+
+namespace lzc {
+#if IS_SINGLE_PRECISION
+    typedef float real_t;
+#else
+    typedef double real_t;
+#endif
+    typedef unsigned index_t; // 0 ~ 65535 limit of #(gpu thread block) 
+}; // lzc
 
 namespace lzc {
     namespace op {
@@ -54,5 +78,6 @@ namespace lzc {
             }
         }; // div_to 
     }; // sv 
-}; // lzc
+};
+
 #endif

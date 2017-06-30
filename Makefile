@@ -8,14 +8,15 @@ export NVCCFLAGS = -O0
 # specify tensor path
 BIN = test
 OBJ = 
-CUOBJ = testcuda.o
+CUOBJ = testcuda.o testcuda2.o
 CUBIN = 
 .PHONY: clean all
 
 all: $(BIN) $(OBJ) $(CUBIN) $(CUOBJ)
 
-test: testcompile.cpp tensor/*.h testcuda.o 
+test: testcompile.cpp tensor/*.h testcuda.o testcuda2.o
 testcuda.o: testcuda.cu tensor/*.h tensor/cuda/*.cuh
+testcuda2.o: testcuda2.cu tensor/*.h tensor/cuda/*.cuh
 
 $(BIN) :
 	$(CXX) $(CFLAGS) $(LDFLAGS) -g -o $@ $(filter %.cpp %.o %.c, $^)
